@@ -6,7 +6,7 @@ const Groq = require("groq-sdk");
 const client = new Groq({ apiKey: process.env.GROQ_API_KEY });
 
 // ─── Feature flag — set to true when navigator.js is ready ───────────────────
-const NAVIGATOR_ENABLED = false; // 🚩 flip to true to activate The Navigator
+const NAVIGATOR_ENABLED = false; //  flip to true to activate The Navigator
 
 // ─── Conversation memory (keyed by CallSid) ───────────────────────────────────
 // Stores the full chat history for each active call
@@ -99,7 +99,8 @@ router.post("/voice", (req, res) => {
 
   res.send(`
     <Response>
-      <Gather input="speech" action="/process-speech" method="POST" timeout="6" speechTimeout="auto">
+      <Gather input="speech" action="/process-speech" method="POST" timeout="6" speechTimeout="auto" enhanced="true"
+  language="en-IN">
         <Say voice="Polly.Aditi">
           Hello! You have reached the emergency medical helpline.
           Please describe your problem or symptoms.
@@ -134,7 +135,7 @@ router.post("/process-speech", async (req, res) => {
     return res.send(`
       <Response>
         <Say voice="Polly.Aditi">I didn't catch that. Please go ahead and describe your problem.</Say>
-        <Gather input="speech" action="/process-speech" method="POST" timeout="6" speechTimeout="auto">
+        <Gather input="speech" action="/process-speech" method="POST" timeout="5" speechTimeout="auto" enhanced="true" language="en-IN">
         </Gather>
         <Redirect>/voice</Redirect>
       </Response>
@@ -164,7 +165,8 @@ router.post("/process-speech", async (req, res) => {
         <Say voice="Polly.Aditi">
           I didn't quite understand. Please describe your medical problem or symptoms clearly.
         </Say>
-        <Gather input="speech" action="/process-speech" method="POST" timeout="6" speechTimeout="auto">
+        <Gather input="speech" action="/process-speech" method="POST" timeout="4" speechTimeout="auto" enhanced="true"
+  language="en-IN">
           <Say voice="Polly.Aditi">Go ahead, I'm listening.</Say>
         </Gather>
         <Say voice="Polly.Aditi">I didn't hear anything. Please try again.</Say>
@@ -223,7 +225,8 @@ router.post("/process-speech", async (req, res) => {
       return res.send(`
         <Response>
           <Say voice="Polly.Aditi">${reply}</Say>
-          <Gather input="speech" action="/process-speech" method="POST" timeout="8" speechTimeout="auto">
+          <Gather input="speech" action="/process-speech" method="POST" timeout="4" speechTimeout="auto" enhanced="true"
+  language="en-IN">
           </Gather>
           <Say voice="Polly.Aditi">I didn't hear that. Please continue describing your problem.</Say>
           <Redirect>/process-speech</Redirect>
@@ -236,7 +239,7 @@ router.post("/process-speech", async (req, res) => {
 
     // ── EMERGENCY — fire navigator ────────────────────────────────────────────
     if (priority === "emergency") {
-      // 🚩 NAVIGATOR_ENABLED — flip flag to true at top of file to activate
+      // NAVIGATOR_ENABLED — flip flag to true at top of file to activate
       if (NAVIGATOR_ENABLED) {
         triggerNavigator(PATIENT_LAT, PATIENT_LNG, condition, callerNum)
           .then((nav) => {

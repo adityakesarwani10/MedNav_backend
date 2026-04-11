@@ -9,7 +9,7 @@ const client = require("twilio")(
 
 client.calls.create({
   url: "https://delirious-alesha-distinctively.ngrok-free.dev/voice", // 👈 IMPORTANT CHANGE
-  to: "+919648527769", // your number
+  to: process.env.MOBILE_NUMBER, // your number
   from: process.env.TWILIO_PHONE_NUMBER,
 })
 .then(call => console.log("Call SID:", call.sid))
