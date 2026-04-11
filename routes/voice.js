@@ -1,12 +1,15 @@
 const express = require("express");
 const router = express.Router();
+require("dotenv").config();   
 const Groq = require("groq-sdk");
-// const { triggerNavigator } = require("./navigator");
+const twilio = require("twilio");
+const twilioClient = twilio(process.env.ACCOUNT_SID, process.env.AUTH_TOKEN);
+const { triggerNavigator } = require("../navigator.js"); // Import the navigator function
 
 const client = new Groq({ apiKey: process.env.GROQ_API_KEY });
 
 // ─── Feature flag — set to true when navigator.js is ready ───────────────────
-const NAVIGATOR_ENABLED = false; //  flip to true to activate The Navigator
+const NAVIGATOR_ENABLED = true; //  flip to true to activate The Navigator
 
 // ─── Conversation memory (keyed by CallSid) ───────────────────────────────────
 // Stores the full chat history for each active call
@@ -85,6 +88,21 @@ When needsMore is FALSE:
 
 ONLY return JSON. Nothing else.`;
 
+async function sendSMS(to, message) {
+  try {
+    await twilioClient.messages.create({
+      body: message,
+      from: process.env.TWILIO_PHONE_NUMBER,
+      to: process.env.MOBILE_NUMBER, // For testing, send to your own number defined in .env
+    });
+    console.log("📱 SMS sent to:", process.env.MOBILE_NUMBER);
+    console.log("Message: " ,message);
+    
+  } catch (err) {
+    console.error("SMS error:", err.message);
+  }
+}
+
 // ─── Route 1: Incoming call ───────────────────────────────────────────────────
 router.post("/voice", (req, res) => {
   res.type("text/xml");
@@ -96,15 +114,15 @@ router.post("/voice", (req, res) => {
     callHistory[callSid] = [];
     console.log(`📞 New call started: ${callSid}`);
   }
-
+  //  You have reached the emergency medical helpline.
+  //         Please describe your problem or symptoms.
+  //         Say end or goodbye whenever you want to finish the call.
   res.send(`
     <Response>
       <Gather input="speech" action="/process-speech" method="POST" timeout="6" speechTimeout="auto" enhanced="true"
   language="en-IN">
         <Say voice="Polly.Aditi">
-          Hello! You have reached the emergency medical helpline.
-          Please describe your problem or symptoms.
-          Say end or goodbye whenever you want to finish the call.
+          Hello!
         </Say>
       </Gather>
       <Say voice="Polly.Aditi">I didn't hear anything. Please try again.</Say>
@@ -251,6 +269,16 @@ router.post("/process-speech", async (req, res) => {
         console.log("🚩 Navigator disabled — set NAVIGATOR_ENABLED = true to activate");
       }
 
+      // 📱 SMS — notify patient after emergency detected
+      sendSMS(callerNum,
+        `🚨 EMERGENCY ALERT — MedNav\n` +
+        `Condition: ${condition}\n` +
+        `Specialist: ${specialist}\n` +
+        `An ambulance has been dispatched to your location.\n` +
+        `Hospital has been pre-alerted and will be ready.\n` +
+        `Stay calm. Help is on the way.`
+      );
+
       return res.send(`
         <Response>
           <Say voice="Polly.Aditi">${reply}</Say>
@@ -267,6 +295,16 @@ router.post("/process-speech", async (req, res) => {
 
     // ── HIGH priority ─────────────────────────────────────────────────────────
     if (priority === "high") {
+
+       // 📱 SMS — notify patient of high priority triage
+      sendSMS(callerNum,
+        `⚠️ URGENT ALERT — MedNav\n` +
+        `Condition: ${condition}\n` +
+        `Specialist: ${specialist} (High Priority)\n` +
+        `Please arrange: ${requirements}\n` +
+        `A medical team will contact you very shortly. Stay calm.`
+      );
+
       return res.send(`
         <Response>
           <Say voice="Polly.Aditi">${reply}</Say>
@@ -279,7 +317,13 @@ router.post("/process-speech", async (req, res) => {
         </Response>
       `);
     }
-
+    sendSMS(callerNum,
+      `📋 MedNav Summary\n` +
+      `Condition: ${condition}\n` +
+      `Specialist: ${specialist}\n` +
+      `${requirements ? `Please arrange: ${requirements}\n` : ""}` +
+      `We will contact you shortly to confirm your appointment. Take care!`
+    );
     // ── MEDIUM / LOW priority ─────────────────────────────────────────────────
     return res.send(`
       <Response>
