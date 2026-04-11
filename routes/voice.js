@@ -29,7 +29,7 @@ const problemKeywords = [
   "chest pain", "headache", "accident", "murder", "fever", "bleeding",
   "injury", "pain", "stroke", "breathe", "breath", "unconscious",
   "fracture", "burn", "vomit", "symptom", "symptoms", "ill", "sick",
-  "hurt", "broken", "cut", "fall", "poison", "allergic", "seizure",
+  "hurt", "broken", "cut", "fall","falling", "poison", "allergic", "seizure",
   "dizzy", "dizziness", "swelling", "rash", "bite", "attack", "heart",
   "night", "days", "hours", "since", "last", "started", "worse", "better",
   // ↑ These extra keywords help recognize follow-up messages like
@@ -90,11 +90,14 @@ ONLY return JSON. Nothing else.`;
 
 async function sendSMS(to, message) {
   try {
-    await twilioClient.messages.create({
+    const response = await twilioClient.messages.create({
       body: message,
       from: process.env.TWILIO_PHONE_NUMBER,
       to: process.env.MOBILE_NUMBER, // For testing, send to your own number defined in .env
     });
+    let status = response.status;
+    console.log("📱 SMS status:", status);
+    // console.log("Response", response);
     console.log("📱 SMS sent to:", process.env.MOBILE_NUMBER);
     console.log("Message: " ,message);
     
@@ -114,15 +117,15 @@ router.post("/voice", (req, res) => {
     callHistory[callSid] = [];
     console.log(`📞 New call started: ${callSid}`);
   }
-  //  You have reached the emergency medical helpline.
-  //         Please describe your problem or symptoms.
-  //         Say end or goodbye whenever you want to finish the call.
+
   res.send(`
     <Response>
       <Gather input="speech" action="/process-speech" method="POST" timeout="6" speechTimeout="auto" enhanced="true"
   language="en-IN">
         <Say voice="Polly.Aditi">
-          Hello!
+          Hello!   You have reached the emergency medical helpline.
+          Please describe your problem or symptoms.
+          Say end or goodbye whenever you want to finish the call.
         </Say>
       </Gather>
       <Say voice="Polly.Aditi">I didn't hear anything. Please try again.</Say>
@@ -270,14 +273,7 @@ router.post("/process-speech", async (req, res) => {
       }
 
       // 📱 SMS — notify patient after emergency detected
-      sendSMS(callerNum,
-        `🚨 EMERGENCY ALERT — MedNav\n` +
-        `Condition: ${condition}\n` +
-        `Specialist: ${specialist}\n` +
-        `An ambulance has been dispatched to your location.\n` +
-        `Hospital has been pre-alerted and will be ready.\n` +
-        `Stay calm. Help is on the way.`
-      );
+      sendSMS(callerNum, `🚨 MedNav: ${condition} detected. Ambulance dispatched. Hospital alerted. Stay calm.`);
 
       return res.send(`
         <Response>
@@ -297,13 +293,7 @@ router.post("/process-speech", async (req, res) => {
     if (priority === "high") {
 
        // 📱 SMS — notify patient of high priority triage
-      sendSMS(callerNum,
-        `⚠️ URGENT ALERT — MedNav\n` +
-        `Condition: ${condition}\n` +
-        `Specialist: ${specialist} (High Priority)\n` +
-        `Please arrange: ${requirements}\n` +
-        `A medical team will contact you very shortly. Stay calm.`
-      );
+      sendSMS(callerNum, `⚠️ MedNav: ${condition}. ${specialist} notified. Arrange: ${requirements}. Team calls shortly.`);
 
       return res.send(`
         <Response>
@@ -317,13 +307,7 @@ router.post("/process-speech", async (req, res) => {
         </Response>
       `);
     }
-    sendSMS(callerNum,
-      `📋 MedNav Summary\n` +
-      `Condition: ${condition}\n` +
-      `Specialist: ${specialist}\n` +
-      `${requirements ? `Please arrange: ${requirements}\n` : ""}` +
-      `We will contact you shortly to confirm your appointment. Take care!`
-    );
+    sendSMS(callerNum, `📋 MedNav: ${condition}. Scheduling ${specialist}. We will contact you shortly.`);
     // ── MEDIUM / LOW priority ─────────────────────────────────────────────────
     return res.send(`
       <Response>
