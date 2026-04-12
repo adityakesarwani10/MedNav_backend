@@ -10,6 +10,7 @@ const client = new Groq({ apiKey: process.env.GROQ_API_KEY });
 
 // ─── Feature flag — set to true when navigator.js is ready ───────────────────
 const NAVIGATOR_ENABLED = true; //  flip to true to activate The Navigator
+const MESSAGE_SENDING_ENABLED = false; // Flip to true to enable SMS notifications to patients (requires valid Twilio credentials in .env)
 
 // ─── Conversation memory (keyed by CallSid) ───────────────────────────────────
 // Stores the full chat history for each active call
@@ -273,7 +274,10 @@ router.post("/process-speech", async (req, res) => {
       }
 
       // 📱 SMS — notify patient after emergency detected
-      sendSMS(callerNum, `🚨 MedNav: ${condition} detected. Ambulance dispatched. Hospital alerted. Stay calm.`);
+      if(MESSAGE_SENDING_ENABLED) {
+        await sendSMS(callerNum, `🚨 MedNav: ${condition} detected. Ambulance dispatched. Hospital alerted. Stay calm.`);
+      }
+
 
       return res.send(`
         <Response>
@@ -293,7 +297,9 @@ router.post("/process-speech", async (req, res) => {
     if (priority === "high") {
 
        // 📱 SMS — notify patient of high priority triage
-      sendSMS(callerNum, `⚠️ MedNav: ${condition}. ${specialist} notified. Arrange: ${requirements}. Team calls shortly.`);
+      if(MESSAGE_SENDING_ENABLED) {
+        await sendSMS(callerNum, `⚠️ MedNav: ${condition}. ${specialist} notified. Arrange: ${requirements}. Team calls shortly.`);
+      }
 
       return res.send(`
         <Response>
@@ -307,7 +313,11 @@ router.post("/process-speech", async (req, res) => {
         </Response>
       `);
     }
-    sendSMS(callerNum, `📋 MedNav: ${condition}. Scheduling ${specialist}. We will contact you shortly.`);
+      // 📱 SMS — notify patient of medium/low priority triage
+
+    if(MESSAGE_SENDING_ENABLED) {
+      await sendSMS(callerNum, `📋 MedNav: ${condition}. Scheduling ${specialist}. We will contact you shortly.`);
+    }
     // ── MEDIUM / LOW priority ─────────────────────────────────────────────────
     return res.send(`
       <Response>
