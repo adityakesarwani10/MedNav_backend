@@ -15,4 +15,4 @@ async function sendSMS(twilioClient, message) {
   }
 }
 
-module.exports = { sendSMS };
+export { sendSMS };

@@ -1,21 +1,28 @@
 // router.js — Main routes only
-const express = require("express");
-const router  = express.Router();
-require("dotenv").config();
+import express from "express";
+import "dotenv/config";
 
-const Groq   = require("groq-sdk");
-const twilio = require("twilio");
+const router = express.Router();
 
-const { triggerNavigator } = require("../navigator.js");
-const { NAVIGATOR_ENABLED, MESSAGE_SENDING_ENABLED,
-        PATIENT_LAT, PATIENT_LNG,
-        problemKeywords, exitKeywords, SYSTEM_PROMPT }   = require("./config");
-const { initHistory, getHistory,
-        pushToHistory, cleanupCall }                     = require("./history");
-const { sendSMS }                                        = require("./sms");
+const { Groq } = await import("groq-sdk");
+const twilioMod = await import("twilio");
 
-const client       = new Groq({ apiKey: process.env.GROQ_API_KEY });
-const twilioClient = twilio(process.env.ACCOUNT_SID, process.env.AUTH_TOKEN);
+const { triggerNavigator } = await import("../navigator.js");
+import { 
+  NAVIGATOR_ENABLED, MESSAGE_SENDING_ENABLED,
+  PATIENT_LAT, PATIENT_LNG,
+  problemKeywords, exitKeywords, SYSTEM_PROMPT 
+} from "./config.js";
+
+import { 
+  initHistory, getHistory,
+  pushToHistory, cleanupCall 
+} from "./history.js";
+
+import { sendSMS } from "./sms.js";
+
+const client = new Groq({ apiKey: process.env.GROQ_API_KEY });
+const twilioClient = twilioMod.default(process.env.ACCOUNT_SID, process.env.AUTH_TOKEN);
 
 // ─── Route 1: Incoming call ───────────────────────────────────────────────────
 router.post("/voice", (req, res) => {
@@ -42,8 +49,8 @@ router.post("/process-speech", async (req, res) => {
   res.type("text/xml");
 
   const speechText = (req.body.SpeechResult || "").toLowerCase().trim();
-  const callSid    = req.body.CallSid || "unknown";
-  const callerNum  = req.body.From    || "Unknown";
+  const callSid = req.body.CallSid || "unknown";
+  const callerNum = req.body.From || "Unknown";
 
   console.log("\n─────────────────────────────────");
   console.log("📞 CallSid:", callSid);
@@ -74,9 +81,9 @@ router.post("/process-speech", async (req, res) => {
   }
 
   // ── Keyword filter (first message only) ───────────────────────────────────
-  const history        = getHistory(callSid);
+  const history = getHistory(callSid);
   const isFirstMessage = history.length === 0;
-  const hasProblem     = problemKeywords.some((kw) => speechText.includes(kw));
+  const hasProblem = problemKeywords.some((kw) => speechText.includes(kw));
 
   if (isFirstMessage && !hasProblem) {
     return res.send(`
@@ -229,4 +236,5 @@ router.post("/process-speech", async (req, res) => {
   }
 });
 
-module.exports = router;
+export default router;
+

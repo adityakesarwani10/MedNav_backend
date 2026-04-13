@@ -1,11 +1,7 @@
 // Download the helper library from https://www.twilio.com/docs/node/install
 // Set environment variables for your credentials
 // Read more at http://twil.io/secure
-require("dotenv").config();
-const client = require("twilio")(
-  process.env.ACCOUNT_SID,
-  process.env.AUTH_TOKEN
-);
+import "dotenv/config";\nimport { default: twilio } from "twilio";
 
 client.calls.create({
   url: "https://delirious-alesha-distinctively.ngrok-free.dev/voice", // 👈 IMPORTANT CHANGE
