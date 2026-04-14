@@ -127,4 +127,5 @@ async function triggerNavigator(patientLat, patientLng, emergencyType, patientNa
     return result;
 }
 
-export { triggerNavigator, ambulances, hospitals };
+module.exports = { triggerNavigator, ambulances, hospitals };
+// export { triggerNavigator, ambulances, hospitals };

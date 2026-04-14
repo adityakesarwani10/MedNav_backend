@@ -25,4 +25,4 @@ function cleanupCall(callSid) {
   }, 10 * 60 * 1000);
 }
 
-export { initHistory, getHistory, pushToHistory, cleanupCall };
+module.exports = { initHistory, getHistory, pushToHistory, cleanupCall }; 
