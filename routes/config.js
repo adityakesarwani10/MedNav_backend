@@ -1,8 +1,10 @@
 // config.js — All constants, flags, keywords, and system prompt
 
 // ─── Feature flags ────────────────────────────────────────────────────────────
-const NAVIGATOR_ENABLED       = true;  // 🚩 flip to false to disable The Navigator
-const MESSAGE_SENDING_ENABLED = true; // 🚩 flip to true to enable SMS notifications
+const NAVIGATOR_ENABLED       = false;  // 🚩 flip to false to disable The Navigator
+const MESSAGE_SENDING_ENABLED = false; // 🚩 flip to true to enable SMS notifications
+const CALLING_ENABLED = false;; // 🚩 flip to true to enable live calls 
+// Make sure to enable Navigator as true to calling_enabled
 
 // ─── Patient mock location ────────────────────────────────────────────────────
 const PATIENT_LAT = 25.4358;
@@ -69,6 +71,7 @@ ONLY return JSON. Nothing else.`;
 module.exports = {
   NAVIGATOR_ENABLED,
   MESSAGE_SENDING_ENABLED,
+  CALLING_ENABLED,
   PATIENT_LAT,
   PATIENT_LNG,
   problemKeywords,

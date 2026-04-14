@@ -5,11 +5,12 @@ require("dotenv").config();
 
 const Groq   = require("groq-sdk");
 const twilio = require("twilio");
+const { dispatchCalls } = require("../caller.js");
 
 const { triggerNavigator } = require("../navigator.js");
 const { NAVIGATOR_ENABLED, MESSAGE_SENDING_ENABLED,
         PATIENT_LAT, PATIENT_LNG,
-        problemKeywords, exitKeywords, SYSTEM_PROMPT }   = require("./config");
+        problemKeywords, exitKeywords, SYSTEM_PROMPT,CALLING_ENABLED }   = require("./config");
 const { initHistory, getHistory,
         pushToHistory, cleanupCall }                     = require("./history");
 const { sendSMS }                                        = require("./sms");
@@ -20,15 +21,16 @@ const twilioClient = twilio(process.env.ACCOUNT_SID, process.env.AUTH_TOKEN);
 // ─── Route 1: Incoming call ───────────────────────────────────────────────────
 router.post("/voice", (req, res) => {
   res.type("text/xml");
+  // Hello! You have reached the emergency medical helpline.
+  //         Please describe your problem or symptoms.
+  //         Say end or goodbye whenever you want to finish the call.
   initHistory(req.body.CallSid);
   res.send(`
     <Response>
       <Gather input="speech" action="/process-speech" method="POST"
               timeout="6" speechTimeout="auto" enhanced="true" language="en-IN">
         <Say voice="Polly.Aditi">
-          Hello! You have reached the emergency medical helpline.
-          Please describe your problem or symptoms.
-          Say end or goodbye whenever you want to finish the call.
+          Hello!
         </Say>
       </Gather>
       <Say voice="Polly.Aditi">I didn't hear anything. Please try again.</Say>
@@ -151,9 +153,19 @@ router.post("/process-speech", async (req, res) => {
     if (priority === "emergency") {
       if (NAVIGATOR_ENABLED) {
         triggerNavigator(PATIENT_LAT, PATIENT_LNG, condition, callerNum)
-          .then((nav) => {
+          .then(async (nav) => {
             console.log("🚑 Dispatched:", nav.ambulance?.name, "| ETA:", nav.ambulance?.eta);
             console.log("🏥 Hospital:", nav.hospital?.name);
+
+            if (CALLING_ENABLED) {
+              const res = await dispatchCalls(twilioClient, nav, {
+                condition,
+                specialist,
+                requirements,
+              });
+
+              console.log("📞 Dispatch result:", res);
+            }
           })
           .catch((err) => console.error("Navigator error:", err));
       } else {
@@ -163,7 +175,7 @@ router.post("/process-speech", async (req, res) => {
       if (MESSAGE_SENDING_ENABLED) {
         await sendSMS(twilioClient, `🚨 MedNav: ${condition} detected. Ambulance dispatched. Hospital alerted. Stay calm.`);
       }
-
+      
       return res.send(`
         <Response>
           <Say voice="Polly.Aditi">${reply}</Say>
