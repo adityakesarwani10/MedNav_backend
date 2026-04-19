@@ -1,9 +1,9 @@
 // config.js — All constants, flags, keywords, and system prompt
 
 // ─── Feature flags ────────────────────────────────────────────────────────────
-const NAVIGATOR_ENABLED       = false;  // 🚩 flip to false to disable The Navigator
+const NAVIGATOR_ENABLED       = true;  // 🚩 flip to false to disable The Navigator
 const MESSAGE_SENDING_ENABLED = false; // 🚩 flip to true to enable SMS notifications
-const CALLING_ENABLED = false;; // 🚩 flip to true to enable live calls 
+const CALLING_ENABLED = false; // 🚩 flip to true to enable live calls 
 // Make sure to enable Navigator as true to calling_enabled
 
 // ─── Patient mock location ────────────────────────────────────────────────────
