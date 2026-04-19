@@ -7,7 +7,6 @@
 [![Twilio](https://img.shields.io/badge/Twilio-F22F46?style=flat-square&logo=twilio&logoColor=white)](https://twilio.com)
 [![Groq](https://img.shields.io/badge/Groq%20LLaMA-F55036?style=flat-square)](https://groq.com)
 [![React](https://img.shields.io/badge/React-61DAFB?style=flat-square&logo=react&logoColor=black)](https://react.dev)
-[![HackDiwas](https://img.shields.io/badge/HackDiwas%203.0-AgentVerse-7C3AED?style=flat-square)](https://hackdiwas.com)
 
 <br/>
 
@@ -96,7 +95,3 @@ ngrok http 3000
 Set your Twilio webhook to `https://your-ngrok-url.ngrok.io/voice` and call your Twilio number.
 
 ---
-
-## Built By
-
-**Team AgentVerse** — HackDiwas 3.0
