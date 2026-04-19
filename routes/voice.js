@@ -110,6 +110,7 @@ router.post("/process-speech", async (req, res) => {
         ...getHistory(callSid),
       ],
     });
+    // console.log("Printing spreading data", ...getHistory(callSid));
 
     // ── Parse response ───────────────────────────────────────────────────────
     const raw = aiResponse.choices[0].message.content.trim();
