@@ -3,6 +3,7 @@
 const express              = require("express");
 const router               = express.Router();
 const { state }            = require("./state");
+
 const { ambulances, hospitals, calls } = require("./db");
 
 // ── GET /api/status ───────────────────────────────────────────────
@@ -20,6 +21,7 @@ router.get("/status", (req, res) => {
 // ── GET /api/fleet ────────────────────────────────────────────────
 // Returns: ambulance availability for Fleet Snapshot widget
 router.get("/fleet", (req, res) => {
+
   res.json(
     ambulances.map(a => ({
       id:        a.id,

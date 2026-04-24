@@ -3,8 +3,11 @@ const express = require("express");
 const router  = express.Router();
 const jwt     = require("jsonwebtoken");
 const { users, otpStore, sessions } = require("../db");
+const twilio = require("twilio");
 
-const JWT_SECRET = process.env.JWT_SECRET || "mednav_secret_key";
+const twilioClient = twilio(process.env.ACCOUNT_SID, process.env.AUTH_TOKEN);
+
+const JWT_SECRET = process.env.JWT_SECRET;
 
 // Generate 6-digit OTP
 function generateOTP() {

@@ -12,7 +12,7 @@ const users = [
   {
     id: "ADM-001",
     name: "Admin",
-    phone: "+919999999999",
+    phone: "+919140040247",
     role: "admin",
     verified: true,
     createdAt: "2024-01-01"
