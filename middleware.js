@@ -1,16 +1,15 @@
-// middleware.js
 const jwt = require("jsonwebtoken");
-const { users } = require("./db");
+const { User } = require("./db");
 
 const JWT_SECRET = process.env.JWT_SECRET || "mednav_secret_key";
 
-function authenticate(req, res, next) {
+async function authenticate(req, res, next) {
   const token = req.headers.authorization?.split(" ")[1];
   if (!token) return res.status(401).json({ message: "No token" });
 
   try {
     const decoded = jwt.verify(token, JWT_SECRET);
-    const user    = users.find(u => u.id === decoded.userId);
+    const user    = await User.findOne({ userId: decoded.userId });
     if (!user) return res.status(401).json({ message: "User not found" });
     req.user = user;
     next();
@@ -27,3 +26,4 @@ function adminOnly(req, res, next) {
 }
 
 module.exports = { authenticate, adminOnly };
+

@@ -1,4 +1,4 @@
-// state.js — shared live state, updated by triage agent, read by API
+const { Ambulance } = require("./db");
 
 const state = {
   status: "standby",   // "standby" | "emergency" | "high" | "general"
@@ -24,22 +24,21 @@ function addActivity(message, type = "system") {
   if (state.activity.length > 20) state.activity.pop();
 }
 
-function dispatchAmbulance(ambulanceId) {
-  const { ambulances } = require("./db");
-  const amb = ambulances.find(a => a.id === ambulanceId);
-  if (amb) {
-    amb.available = false;
-    amb.status    = "on_trip";
-  }
+async function dispatchAmbulance(ambulanceId) {
+  await Ambulance.findOneAndUpdate(
+    { ambulanceId },
+    { available: false, status: "on_trip" },
+    { new: true }
+  );
 }
 
-function returnAmbulance(ambulanceId) {
-  const { ambulances } = require("./db");
-  const amb = ambulances.find(a => a.id === ambulanceId);
-  if (amb) {
-    amb.available = true;
-    amb.status    = "available";
-  }
+async function returnAmbulance(ambulanceId) {
+  await Ambulance.findOneAndUpdate(
+    { ambulanceId },
+    { available: true, status: "available" },
+    { new: true }
+  );
 }
 
 module.exports = { state, addActivity, dispatchAmbulance, returnAmbulance };
+

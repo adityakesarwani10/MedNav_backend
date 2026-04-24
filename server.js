@@ -1,7 +1,12 @@
 require("dotenv").config();
 const app = require("./app.js");
+const { connectDB } = require("./db.js");
 
-app.listen(3000, () => {
-    console.log("🚀 MedNav Server running cleanly on port 3000");
+const PORT = process.env.PORT || 3000;
+
+connectDB().then(() => {
+  app.listen(PORT, () => {
+    console.log(`🚀 MedNav Server running cleanly on port ${PORT}`);
+  });
 });
 

@@ -1,22 +1,24 @@
-// routes/userRoutes.js
 const express  = require("express");
 const router   = express.Router();
 const { authenticate } = require("../middleware");
 const { state }        = require("../state");
-const { ambulances, hospitals, calls } = require("../db");
+const { Call, Ambulance, Hospital } = require("../db");
 
 // ── GET /api/user/dashboard ───────────────────────────────────────
 // Feeds: Dashboard page — Call Ambulance, Find Hospitals, Track stats
-router.get("/dashboard", authenticate, (req, res) => {
-  const userCalls = calls.filter(c => c.userId === req.user.id);
+router.get("/dashboard", authenticate, async (req, res) => {
+  const userCalls = await Call.find({ userId: req.user.userId });
   const activeCall = userCalls.find(c => c.status === "active");
+
+  const availableAmbs = await Ambulance.countDocuments({ available: true });
+  const availableHospitals = await Hospital.countDocuments({ available: true });
 
   res.json({
     stats: {
       totalCalls:       userCalls.length,
       activeDispatch:   !!activeCall,
-      availableAmbs:    ambulances.filter(a => a.available).length,
-      availableHospitals: hospitals.filter(h => h.available).length,
+      availableAmbs:    availableAmbs,
+      availableHospitals: availableHospitals,
     },
     activity: state.activity.slice(0, 10),
     activeCall: activeCall || null,
@@ -25,9 +27,10 @@ router.get("/dashboard", authenticate, (req, res) => {
 
 // ── GET /api/user/fleet ───────────────────────────────────────────
 // Feeds: Fleet Snapshot — MH-01-AB-1234, Available/On Trip/Maintenance
-router.get("/fleet", authenticate, (req, res) => {
+router.get("/fleet", authenticate, async (req, res) => {
+  const ambulances = await Ambulance.find();
   res.json(ambulances.map(a => ({
-    id:        a.id,
+    id:        a.ambulanceId,
     plate:     a.plate,
     driver:    a.driver,
     status:    a.status,        // "available" | "on_trip" | "maintenance"
@@ -38,9 +41,10 @@ router.get("/fleet", authenticate, (req, res) => {
 
 // ── GET /api/user/hospitals ───────────────────────────────────────
 // Feeds: Find Hospitals page — beds & emergency availability
-router.get("/hospitals", authenticate, (req, res) => {
+router.get("/hospitals", authenticate, async (req, res) => {
+  const hospitals = await Hospital.find();
   res.json(hospitals.map(h => ({
-    id:        h.id,
+    id:        h.hospitalId,
     name:      h.name,
     erBeds:    h.erBeds,
     totalBeds: h.totalBeds,
@@ -52,8 +56,8 @@ router.get("/hospitals", authenticate, (req, res) => {
 
 // ── GET /api/user/track/:callId ───────────────────────────────────
 // Feeds: Track Ambulance page — ETA, driver, status timeline
-router.get("/track/:callId", authenticate, (req, res) => {
-  const call = calls.find(c => c.id === req.params.callId);
+router.get("/track/:callId", authenticate, async (req, res) => {
+  const call = await Call.findOne({ callId: req.params.callId });
 
   if (!call) {
     // Return mock active tracking for demo
@@ -86,20 +90,19 @@ router.get("/track/:callId", authenticate, (req, res) => {
 
 // ── GET /api/user/calls ───────────────────────────────────────────
 // Feeds: User call history
-router.get("/calls", authenticate, (req, res) => {
-  const userCalls = calls
-    .filter(c => c.userId === req.user.id)
-    .map(c => ({
-      id:        c.id,
-      condition: c.condition,
-      priority:  c.priority,
-      status:    c.status,
-      timestamp: c.timestamp,
-      ambulance: c.ambulance,
-      hospital:  c.hospital,
-    }));
+router.get("/calls", authenticate, async (req, res) => {
+  const userCalls = await Call.find({ userId: req.user.userId }).sort({ createdAt: -1 });
 
-  res.json(userCalls);
+  res.json(userCalls.map(c => ({
+    id:        c.callId,
+    condition: c.condition,
+    priority:  c.priority,
+    status:    c.status,
+    timestamp: c.timestamp,
+    ambulance: c.ambulance,
+    hospital:  c.hospital,
+  })));
 });
 
 module.exports = router;
+

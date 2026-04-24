@@ -1,4 +1,3 @@
-// routes/router.js — Twilio triage agent (returns XML to Twilio, updates state for frontend)
 const express  = require("express");
 const router   = express.Router();
 require("dotenv").config();
@@ -13,20 +12,23 @@ const { NAVIGATOR_ENABLED, MESSAGE_SENDING_ENABLED,
 const { initHistory, getHistory, pushToHistory, cleanupCall }     = require("./history");
 const { sendSMS }                                                 = require("./sms");
 const { state, addActivity, dispatchAmbulance }                   = require("../state");
-const { calls, ambulances, hospitals }                            = require("../db");
+const { Call, Ambulance, Hospital }                               = require("../db");
 
 const client       = new Groq({ apiKey: process.env.GROQ_API_KEY });
 const twilioClient = twilio(process.env.ACCOUNT_SID, process.env.AUTH_TOKEN);
 
-// ── Helper: log a completed call to db.js calls array ────────────
-function logCall(data) {
-  const entry = {
-    id:        `CALL-${Date.now()}`,
+// ── Helper: log a completed call to DB ───────────────────────────
+async function logCall(data) {
+  const entry = await Call.create({
     timestamp: new Date().toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit", hour12: true }),
     ...data,
-  };
-  calls.unshift(entry);
-  if (calls.length > 100) calls.pop();
+  });
+  // Keep only last 100 calls
+  const count = await Call.countDocuments();
+  if (count > 100) {
+    const oldest = await Call.find().sort({ createdAt: 1 }).limit(count - 100);
+    await Call.deleteMany({ _id: { $in: oldest.map(o => o._id) } });
+  }
   return entry;
 }
 
@@ -164,8 +166,8 @@ router.post("/process-speech", async (req, res) => {
     if (priority === "emergency") {
 
       // Find nearest available ambulance
-      const nearestAmb = ambulances.find(a => a.available) || ambulances[0];
-      const bestHosp   = hospitals.find(h => h.available)  || hospitals[0];
+      const nearestAmb = await Ambulance.findOne({ available: true }) || await Ambulance.findOne();
+      const bestHosp   = await Hospital.findOne({ available: true })  || await Hospital.findOne();
 
       // ↓ Update shared state — frontend sees this within 2 seconds
       state.status = "emergency";
@@ -177,7 +179,7 @@ router.post("/process-speech", async (req, res) => {
         priority,
         caller:     callerNum,
         callId:     `CALL-${Date.now()}`,
-        ambulance:  nearestAmb.id,
+        ambulance:  nearestAmb.ambulanceId,
         ambName:    nearestAmb.plate,
         driver:     nearestAmb.driver,
         eta:        "6 mins",
@@ -192,9 +194,9 @@ router.post("/process-speech", async (req, res) => {
           { event: "Expected arrival",               time: "~" + new Date(Date.now() + 6*60000).toLocaleTimeString(), done: false },
         ],
       };
-      dispatchAmbulance(nearestAmb.id);
+      await dispatchAmbulance(nearestAmb.ambulanceId);
       addActivity(`Ambulance ${nearestAmb.plate} dispatched — ${condition}`, "emergency");
-      logCall({ condition, specialist, priority, caller: callerNum, status: "active",
+      await logCall({ condition, specialist, priority, caller: callerNum, status: "active",
                 ambulance: nearestAmb.plate, hospital: bestHosp.name });
                 
       console.log("state:", state);
@@ -242,7 +244,7 @@ router.post("/process-speech", async (req, res) => {
         timestamp: new Date().toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit", hour12: true }),
       };
       addActivity(`Urgent: ${condition} — ${specialist} notified`, "high");
-      logCall({ condition, specialist, priority, caller: callerNum, status: "completed" });
+      await logCall({ condition, specialist, priority, caller: callerNum, status: "completed" });
 
       if (MESSAGE_SENDING_ENABLED) {
         await sendSMS(twilioClient, `⚠️ MedNav: ${condition}. ${specialist} notified. Arrange: ${requirements}. Team calls shortly.`);
@@ -271,7 +273,7 @@ router.post("/process-speech", async (req, res) => {
       timestamp: new Date().toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit", hour12: true }),
     };
     addActivity(`General: ${condition} — appointment scheduled`, "general");
-    logCall({ condition, specialist, priority, caller: callerNum, status: "completed" });
+    await logCall({ condition, specialist, priority, caller: callerNum, status: "completed" });
 
     if (MESSAGE_SENDING_ENABLED) {
       await sendSMS(twilioClient, `📋 MedNav: ${condition}. Scheduling ${specialist}. We will contact you shortly.`);
@@ -305,3 +307,4 @@ router.post("/process-speech", async (req, res) => {
 });
 
 module.exports = router;
+

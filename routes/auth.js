@@ -1,8 +1,7 @@
-// routes/auth.js
 const express = require("express");
 const router  = express.Router();
 const jwt     = require("jsonwebtoken");
-const { users, otpStore, sessions } = require("../db");
+const { User, Otp, Session, otpStore } = require("../db");
 const twilio = require("twilio");
 
 const twilioClient = twilio(process.env.ACCOUNT_SID, process.env.AUTH_TOKEN);
@@ -35,23 +34,27 @@ router.post("/send-otp", async (req, res) => {
   }
 
   // Check if user exists — if not, create them
-  let user = users.find(u => u.phone === phone);
+  let user = await User.findOne({ phone });
   if (!user) {
-    user = {
-      id:        `USR-${Date.now()}`,
-      name:      "New User",
+    user = await User.create({
+      name: "New User",
       phone,
-      role:      "user",
-      verified:  false,
-      createdAt: new Date().toISOString()
-    };
-    users.push(user);
+      role: "user",
+      verified: false,
+    });
+    console.log(`🆕 New user created: ${user.phone} (${user.userId})`);
   }
 
   const otp     = generateOTP();
   const expires = Date.now() + 5 * 60 * 1000; // 5 minutes
 
+  // Save to in-memory store for fast lookup
   otpStore[phone] = { otp, expires };
+
+  // Also persist to DB with TTL
+  await Otp.deleteMany({ phone });
+  await Otp.create({ phone, otp, expiresAt: new Date(expires) });
+
   await sendOTP(phone, otp);
 
   res.json({ success: true, message: "OTP sent successfully" });
@@ -59,7 +62,7 @@ router.post("/send-otp", async (req, res) => {
 
 // ── POST /api/auth/verify-otp ─────────────────────────────────────
 // Frontend sends: { phone: "+919876543210", otp: "123456" }
-router.post("/verify-otp", (req, res) => {
+router.post("/verify-otp", async (req, res) => {
   const { phone, otp } = req.body;
 
   if (!phone || !otp) {
@@ -75,18 +78,22 @@ router.post("/verify-otp", (req, res) => {
   if (stored.otp !== otp)           return res.status(400).json({ success: false, message: "Wrong OTP" });
 
   delete otpStore[phone]; // clear OTP after use
+  await Otp.deleteMany({ phone });
 
-  const user = users.find(u => u.phone === phone);
+  const user = await User.findOne({ phone });
+  if (!user) return res.status(404).json({ success: false, message: "User not found" });
+
   user.verified = true;
+  await user.save();
 
   // Generate JWT token
   const token = jwt.sign(
-    { userId: user.id, phone: user.phone, role: user.role },
+    { userId: user.userId, phone: user.phone, role: user.role },
     JWT_SECRET,
     { expiresIn: "7d" }
   );
 
-  sessions[token] = user.id;
+  await Session.create({ token, userId: user.userId });
 
   res
   .setHeader("Authorization", `Bearer ${token}`)
@@ -94,18 +101,20 @@ router.post("/verify-otp", (req, res) => {
     success: true,
     token,
     user: {
-      id:    user.id,
+      id:    user.userId,
       name:  user.name,
       phone: user.phone,
       role:  user.role,
     }
-  })
+  });
 });
 
 // ── POST /api/auth/logout ─────────────────────────────────────────
-router.post("/logout", (req, res) => {
+router.post("/logout", async (req, res) => {
   const token = req.headers.authorization?.split(" ")[1];
-  if (token) delete sessions[token];
+  if (token) {
+    await Session.deleteOne({ token });
+  }
   res.json({ success: true });
 });
 
@@ -116,3 +125,4 @@ router.get("/me", authenticate, (req, res) => {
 });
 
 module.exports = router;
+

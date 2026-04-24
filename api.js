@@ -1,10 +1,7 @@
-// api.js — JSON endpoints polled by frontend every 2 seconds
-
 const express              = require("express");
 const router               = express.Router();
 const { state }            = require("./state");
-
-const { ambulances, hospitals, calls } = require("./db");
+const { Ambulance, Hospital, Call } = require("./db");
 
 // ── GET /api/status ───────────────────────────────────────────────
 // Main polling endpoint — frontend calls this every 2 seconds
@@ -20,11 +17,11 @@ router.get("/status", (req, res) => {
 
 // ── GET /api/fleet ────────────────────────────────────────────────
 // Returns: ambulance availability for Fleet Snapshot widget
-router.get("/fleet", (req, res) => {
-
+router.get("/fleet", async (req, res) => {
+  const ambulances = await Ambulance.find();
   res.json(
     ambulances.map(a => ({
-      id:        a.id,
+      id:        a.ambulanceId,
       plate:     a.plate,
       driver:    a.driver,
       status:    a.status,       // "available" | "on_trip" | "maintenance"
@@ -36,10 +33,11 @@ router.get("/fleet", (req, res) => {
 
 // ── GET /api/hospitals ────────────────────────────────────────────
 // Returns: hospital list with ER bed count
-router.get("/hospitals", (req, res) => {
+router.get("/hospitals", async (req, res) => {
+  const hospitals = await Hospital.find();
   res.json(
     hospitals.map(h => ({
-      id:        h.id,
+      id:        h.hospitalId,
       name:      h.name,
       erBeds:    h.erBeds,
       totalBeds: h.totalBeds,
@@ -51,8 +49,10 @@ router.get("/hospitals", (req, res) => {
 
 // ── GET /api/calls ────────────────────────────────────────────────
 // Returns: full call log (newest first)
-router.get("/calls", (req, res) => {
+router.get("/calls", async (req, res) => {
+  const calls = await Call.find().sort({ createdAt: -1 });
   res.json(calls);
 });
 
 module.exports = router;
+
