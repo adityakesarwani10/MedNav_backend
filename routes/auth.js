@@ -17,11 +17,11 @@ function generateOTP() {
 async function sendOTP(phone, otp) {
   console.log(`📱 OTP for ${phone}: ${otp}`);
   // In production:
-  // await twilioClient.messages.create({
-  //   body: `Your MedNav OTP is ${otp}. Valid for 5 minutes.`,
-  //   from: process.env.TWILIO_PHONE_NUMBER,
-  //   to: phone
-  // });
+  await twilioClient.messages.create({
+    body: `Your MedNav OTP is ${otp}. Valid for 5 minutes.`,
+    from: process.env.TWILIO_PHONE_NUMBER,
+    to: phone
+  });
 }
 
 // ── POST /api/auth/send-otp ───────────────────────────────────────
