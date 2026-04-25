@@ -1,7 +1,7 @@
 require("dotenv").config();
 const app = require("./app.js");
 const { connectDB } = require("./db.js");
-const keepAlive = require("./keepAlive");
+const keepAlive = require("./keepalive.js");
 // server start hone ke baad
 
 const PORT = process.env.PORT || 3000;
