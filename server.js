@@ -7,7 +7,7 @@ const keepAlive = require("./keepAlive");
 const PORT = process.env.PORT || 3000;
 
 connectDB().then(() => {
-  app.listen(3000, () => {
+  app.listen(PORT, () => {
     console.log("Server running");
     keepAlive("https://mednav-backend.onrender.com/api/status");
   });

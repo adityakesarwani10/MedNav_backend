@@ -1,9 +1,10 @@
 // config.js — All constants, flags, keywords, and system prompt
+require("dotenv").config();
 
 // ─── Feature flags ────────────────────────────────────────────────────────────
-const NAVIGATOR_ENABLED       = true;  // 🚩 flip to false to disable The Navigator
-const MESSAGE_SENDING_ENABLED = false; // 🚩 flip to true to enable SMS notifications
-const CALLING_ENABLED = false; // 🚩 flip to true to enable live calls 
+const NAVIGATOR_ENABLED       = process.env.NAVIGATOR_ENABLED;  // 🚩 flip to false to disable The Navigator
+const MESSAGE_SENDING_ENABLED = process.env.MESSAGE_SENDING_ENABLED; // 🚩 flip to true to enable SMS notifications
+const CALLING_ENABLED = process.env.CALLING_ENABLED; // 🚩 flip to true to enable live calls 
 // Make sure to enable Navigator as true to calling_enabled
 
 // ─── Patient mock location ────────────────────────────────────────────────────
