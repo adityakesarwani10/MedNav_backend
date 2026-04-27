@@ -2,6 +2,25 @@ const express              = require("express");
 const router               = express.Router();
 const { state }            = require("./state");
 const { Ambulance, Hospital, Call } = require("./db");
+const AccessToken       = require("twilio").jwt.AccessToken;
+const VoiceGrant        = AccessToken.VoiceGrant;
+
+app.get("/api/token", (req, res) => {
+  const token = new AccessToken(
+    process.env.ACCOUNT_SID,
+    process.env.API_KEY,        // Twilio Console se banao
+    process.env.API_SECRET,     // Twilio Console se banao
+    { identity: "demo-user" }
+  );
+
+  const voiceGrant = new VoiceGrant({
+    outgoingApplicationSid: process.env.TWIML_APP_SID, // Console se banao
+    incomingAllow: false,
+  });
+
+  token.addGrant(voiceGrant);
+  res.json({ token: token.toJwt() });
+});
 
 // ── GET /api/status ───────────────────────────────────────────────
 // Main polling endpoint — frontend calls this every 2 seconds
