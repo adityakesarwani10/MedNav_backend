@@ -14,14 +14,19 @@ function generateOTP() {
 }
 
 // For demo — just log OTP (replace with Twilio SMS in prod)
-async function sendOTP(phone, otp) {
+async function sendOTP(phone, otp, isVerified, res) {
   console.log(`📱 OTP for ${phone}: ${otp}`);
   // In production:
-  await twilioClient.messages.create({
-    body: `Your MedNav OTP is ${otp}. Valid for 5 minutes.`,
-    from: process.env.TWILIO_PHONE_NUMBER,
-    to: phone
-  });
+  if(isVerified) {
+      await twilioClient.messages.create({
+      body: `Your MedNav OTP is ${otp}. Valid for 5 minutes.`,
+      from: process.env.TWILIO_PHONE_NUMBER,
+      to: phone
+    });
+  }
+  else {
+    return res.status(200).json({success:true, message: `OTP for ${phone} is ${otp}. Valid for 5 minutes.`});
+  }
 }
 
 // ── POST /api/auth/send-otp ───────────────────────────────────────
