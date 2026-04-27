@@ -60,7 +60,7 @@ router.post("/send-otp", async (req, res) => {
   await Otp.deleteMany({ phone });
   await Otp.create({ phone, otp, expiresAt: new Date(expires) });
 
-  await sendOTP(phone, otp);
+  await sendOTP(phone, otp, user.verified, res);
 
   res.json({ success: true, message: "OTP sent successfully" });
 });
