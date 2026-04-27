@@ -19,7 +19,7 @@ app.use(express.static("public"));
 app.get("/api/token", (req, res) => {
   const token = new AccessToken(
     process.env.ACCOUNT_SID,
-    process.env.ANTHROPIC_API_KEY,        // Twilio Console se banao
+    process.env.API_KEY,        // Twilio Console se banao
     process.env.API_SECRET,     // Twilio Console se banao
     { identity: "demo-user" }
   );
