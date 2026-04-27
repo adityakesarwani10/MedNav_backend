@@ -8,7 +8,7 @@ const client = require("twilio")(
 );
 
 client.calls.create({
-  url: "https://delirious-alesha-distinctively.ngrok-free.dev/voice", // 👈 IMPORTANT CHANGE
+  url: `${process.env.BASE_URL}/voice`,
   to: process.env.MOBILE_NUMBER, // your number
   from: process.env.TWILIO_PHONE_NUMBER,
 })

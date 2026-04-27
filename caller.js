@@ -5,7 +5,7 @@ const twilio = require("twilio");
 async function callAmbulance(twilioClient, ambulancePhone, dispatchInfo) {
   try {
     const call = await twilioClient.calls.create({
-      url: "https://delirious-alesha-distinctively.ngrok-free.dev/voice",
+      url: `${process.env.BASE_URL}/voice`,
       to: ambulancePhone,
       from: process.env.TWILIO_PHONE_NUMBER,
       twiml: `
