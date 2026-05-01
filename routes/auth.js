@@ -14,19 +14,14 @@ function generateOTP() {
 }
 
 // For demo — just log OTP (replace with Twilio SMS in prod)
-async function sendOTP(phone, otp, isVerified, res) {
+async function sendOTP(phone, otp) {
   console.log(`📱 OTP for ${phone}: ${otp}`);
-  // In production:
-  if(isVerified) {
-      await twilioClient.messages.create({
-      body: `Your MedNav OTP is ${otp}. Valid for 5 minutes.`,
-      from: process.env.TWILIO_PHONE_NUMBER,
-      to: phone
-    });
-  }
-  else {
-    return res.status(200).json({success:true, message: `OTP for ${phone} is ${otp}. Valid for 5 minutes.`});
-  }
+    // In production:
+  await twilioClient.messages.create({
+  body: `Your MedNav OTP is ${otp}. Valid for 5 minutes.`,
+  from: process.env.TWILIO_PHONE_NUMBER,
+  to: phone
+  });
 }
 
 // ── POST /api/auth/send-otp ───────────────────────────────────────
@@ -60,9 +55,14 @@ router.post("/send-otp", async (req, res) => {
   await Otp.deleteMany({ phone });
   await Otp.create({ phone, otp, expiresAt: new Date(expires) });
 
-  await sendOTP(phone, otp, user.verified, res);
+  // if(!user.verified) {
+  //   return res.json({ success: true, otp: otp ,message: "otp sent successfully" });
+  // }
+  // else {
+    // await sendOTP(phone, otp);
+    // }
 
-  res.json({ success: true, message: "OTP sent successfully" });
+  res.json({ success: true, otp:otp, message: "OTP sent successfully" });
 });
 
 // ── POST /api/auth/verify-otp ─────────────────────────────────────
